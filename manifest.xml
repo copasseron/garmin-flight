@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application
+        entry="FlightTraceApp"
+        id="a17d4e0c3b3e4a6f8c0f1d2e3b4a5c6d"
+        name="@Strings.AppName"
+        type="watch-app"
+        minApiLevel="5.2.0"
+        launcherIcon="@Drawables.LauncherIcon">
+        <iq:products>
+            <iq:product id="epix2" />
+        </iq:products>
+            <iq:permissions>
+                <iq:uses-permission id="Positioning" />
+                <iq:uses-permission id="Fit" />
+            </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels />
+    </iq:application>
+</iq:manifest>

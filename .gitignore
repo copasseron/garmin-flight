@@ -1,0 +1,16 @@
+# Connect IQ build output
+bin/
+build/
+*.prg
+*.iq
+
+# Local signing keys and IDE metadata
+developer_key
+*.der
+.tools/
+.project
+.settings/
+.vscode/settings.json
+
+# macOS
+.DS_Store
