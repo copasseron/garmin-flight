@@ -6,9 +6,11 @@ A Garmin Connect IQ device app for the Garmin epix Gen 2. It records a manually 
 
 - Press Select or tap the screen to start a flight.
 - Press Select or tap again to stop and save it.
-- The live screen shows altitude, groundspeed, track, vertical speed, elapsed time, and GPS status.
+- The live screen shows the nearest French airport, distance in nautical miles, true bearing, altitude, groundspeed, and GPS status.
 - Units are aviation-friendly: feet, knots, degrees, and feet per minute.
 - The saved FIT activity is intended to sync through Garmin Connect.
+
+The nearest-airport reference list covers France and includes 196 airports and aerodromes with ICAO identifiers. It is bundled offline and currently comes from the [public-domain OurAirports dataset](https://ourairports.com/data/) downloaded on 2026-09-23. It is an informational convenience feature, not an operational AIP database: it does not assess runway suitability, access restrictions, military status, weather, or NOTAMs. Verify current aeronautical information before flight.
 
 There is no companion phone app, web service, custom map, GPX exporter, flight-plan support, or multi-device support in this MVP.
 
@@ -51,6 +53,8 @@ manifest.xml       Connect IQ app metadata and epix2 target
 monkey.jungle      Connect IQ build configuration
 source/             Monkey C application, view, and input delegate
 resources/          Localized app strings
+source/FranceAirports.mc
+                    Bundled France airport reference points
 ```
 
 ## Garmin references

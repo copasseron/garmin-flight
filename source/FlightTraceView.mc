@@ -31,17 +31,23 @@ class FlightTraceView extends WatchUi.View {
 
         var width = dc.getWidth();
         var info = mApp.getPositionInfo();
+        var airport = mApp.getNearestAirport();
 
-        drawCentered(dc, "FLIGHT TRACE", 8, Graphics.FONT_SMALL, Graphics.COLOR_LT_GRAY);
+        drawCentered(dc, "NEAREST AIRPORT", 8, Graphics.FONT_SMALL, Graphics.COLOR_LT_GRAY);
         drawCentered(dc, mApp.getStatus(), 34, Graphics.FONT_SMALL, statusColor());
 
-        drawCentered(dc, altitudeText(info), 70, Graphics.FONT_LARGE, Graphics.COLOR_WHITE);
-        drawCentered(dc, "ALTITUDE", 118, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY);
+        if (airport == null) {
+            drawCentered(dc, "WAITING FOR GPS", 82, Graphics.FONT_LARGE, Graphics.COLOR_WHITE);
+            drawCentered(dc, "AIRPORT DATA: FRANCE", 126, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY);
+        } else {
+            drawCentered(dc, airport[:ident], 70, Graphics.FONT_LARGE, Graphics.COLOR_WHITE);
+            drawCentered(dc, airportName(airport[:name]), 112, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY);
+            drawMetric(dc, "DISTANCE", distanceText(airport[:distanceMeters]), width / 4, 148);
+            drawMetric(dc, "BEARING TRUE", bearingText(airport[:bearingDegrees]), (width * 3) / 4, 148);
+        }
 
-        drawMetric(dc, "GROUND SPEED", speedText(info), width / 4, 158);
-        drawMetric(dc, "TRACK", headingText(info), (width * 3) / 4, 158);
-        drawMetric(dc, "VERTICAL SPEED", verticalSpeedText(), width / 4, 232);
-        drawMetric(dc, "ELAPSED", elapsedText(), (width * 3) / 4, 232);
+        drawMetric(dc, "ALTITUDE", altitudeText(info), width / 4, 230);
+        drawMetric(dc, "GROUND SPEED", speedText(info), (width * 3) / 4, 230);
 
         var action = mApp.isRecording() ? "SELECT: STOP FLIGHT" : "SELECT: START FLIGHT";
         drawCentered(dc, action, 326, Graphics.FONT_SMALL, actionColor());
@@ -86,6 +92,21 @@ class FlightTraceView extends WatchUi.View {
             return "-- kt";
         }
         return (info.speed * 1.94384).format("%0.0f") + " kt";
+    }
+
+    function distanceText(meters) {
+        return (meters / 1852.0).format("%0.1f") + " NM";
+    }
+
+    function bearingText(degrees) {
+        return degrees.format("%03.0f") + "°T";
+    }
+
+    function airportName(name) {
+        if (name.length() > 34) {
+            return name.substring(0, 34);
+        }
+        return name;
     }
 
     function headingText(info) {
