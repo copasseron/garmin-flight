@@ -63,7 +63,8 @@ class FlightTraceView extends WatchUi.View {
             rightX, topLine + 12, topLine + 36);
         drawGridMetric(dc, "TRACK MAG", magneticHeadingText(info),
             leftX, middleLine + 12, middleLine + 36);
-        drawGridMetric(dc, "VERT SPEED FPM", verticalSpeedValueText(),
+        var verticalSpeedLabel = width > 430 ? "VERT SPD FPM" : "VERT SPEED FPM";
+        drawGridMetric(dc, verticalSpeedLabel, verticalSpeedValueText(),
             rightX, middleLine + 12, middleLine + 36);
 
         // Draw the grid after the field contents so the boundary lines stay
@@ -215,13 +216,13 @@ class FlightTraceView extends WatchUi.View {
     function drawAirportInfoLayout(dc, width, height, airport) {
         var centerX = width / 2;
         var centerY = height / 2;
-        var slotWidth = (width * 42) / 100;
+        var slotWidth = (width * 52) / 100;
         var slotHeight = (height * 15) / 100;
-        var leftX = (width * 25) / 100;
-        var rightX = (width * 75) / 100;
+        var leftX = (width * 24) / 100;
+        var rightX = (width * 76) / 100;
         var topY = (height * 26) / 100;
         var bottomY = (height * 69) / 100;
-        var slotTextWidth = slotWidth - 8;
+        var slotTextWidth = slotWidth - 4;
         var lowerTextWidth = (width * 82) / 100;
 
         // Use the four quadrants and keep the ADF center unobstructed.
@@ -241,8 +242,17 @@ class FlightTraceView extends WatchUi.View {
 
         drawAirportSlot(dc, centerX, centerY, (width * 34) / 100,
             (height * 19) / 100);
+        // Keep all four ICAO letters visible on the 260px and smaller
+        // Forerunner screens; the large font used by the AMOLED watches does
+        // not fit those round displays.
+        var identFont = Graphics.FONT_LARGE;
+        var identWidth = (width * 42) / 100;
+        if (width < 300) {
+            identFont = width < 230 ? Graphics.FONT_SMALL : Graphics.FONT_MEDIUM;
+            identWidth = (width * 48) / 100;
+        }
         drawCenteredSafeAt(dc, airport[:ident], centerX, centerY - 25,
-            Graphics.FONT_LARGE, Graphics.COLOR_WHITE, (width * 30) / 100);
+            identFont, Graphics.COLOR_WHITE, identWidth);
 
         var runwayLabel = "RWY " + airport[:runways];
         if (airport[:runways] == "WATER") {

@@ -37,17 +37,26 @@ developer key or generated build files.
 
 ## Compatibility
 
-Validated with Connect IQ SDK 9.2.0 on the simulator. Every profile was checked
-on the three pages with a GPS fix, airport data and active airspace data:
+Validated with Connect IQ SDK 9.2.0 on the simulator. Every listed profile was
+checked on the three pages with a GPS fix, airport data and active airspace data:
 
 - `epix2`: epix Gen 2 and quatix 7 Sapphire, 416×416
 - `fenix7`: fēnix 7 and quatix 7, 260×260
 - `fenix7x`: fēnix 7X and Enduro 2 family, 280×280
 - `enduro3`: Enduro 3, 280×280
+- `fr165`: Forerunner 165, 390×390
+- `fr265`: Forerunner 265, 416×416
+- `fr955`: Forerunner 955 / Solar, 260×260
+- `fr965`: Forerunner 965, 454×454
+- `fr970`: Forerunner 970, 454×454
 
 The checks covered the flight, nearest-airport and current-airspace screens:
 all displayed fields remained inside the watch face with no text overlap or
 clipping. Simulator validation is not a substitute for an on-watch test.
+
+Forerunner 55, 155, 255 and 945 are not claimed as compatible: the installed
+SDK 9.2.0 cannot enable 55/945, has no 155 profile, and the 255 simulator
+launches out of memory.
 
 ## Screenshots
 

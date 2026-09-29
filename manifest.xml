@@ -8,15 +8,20 @@
         minApiLevel="5.2.0"
         launcherIcon="@Drawables.LauncherIcon">
         <iq:products>
+            <iq:product id="enduro3" />
             <iq:product id="epix2" />
             <iq:product id="fenix7" />
             <iq:product id="fenix7x" />
-            <iq:product id="enduro3" />
+            <iq:product id="fr165" />
+            <iq:product id="fr265" />
+            <iq:product id="fr955" />
+            <iq:product id="fr965" />
+            <iq:product id="fr970" />
         </iq:products>
-            <iq:permissions>
-                <iq:uses-permission id="Positioning" />
-                <iq:uses-permission id="Fit" />
-            </iq:permissions>
+        <iq:permissions>
+            <iq:uses-permission id="Positioning" />
+            <iq:uses-permission id="Fit" />
+        </iq:permissions>
         <iq:languages>
             <iq:language>eng</iq:language>
         </iq:languages>
