@@ -40,11 +40,11 @@ developer key or generated build files.
 
 ![Nearest airport page](docs/screenshots/nearest-airport-page.png)
 
-![Simulator controls](docs/screenshots/simulator-controls.png)
+![Current airspace page](docs/screenshots/airspace-page.png)
 
-The app contains a third airspace page, opened with `Down` from the airport
-page. The screenshots are representative simulator views; always verify the
-current build and current aeronautical data before flight.
+The airspace page opens with `Down` from the airport page. These are complete
+watch-screen simulator captures; always verify the current build and current
+aeronautical data before flight.
 
 ## Refresh the airspace data
 
