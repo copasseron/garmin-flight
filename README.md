@@ -54,9 +54,9 @@ The checks covered the flight, nearest-airport and current-airspace screens:
 all displayed fields remained inside the watch face with no text overlap or
 clipping. Simulator validation is not a substitute for an on-watch test.
 
-Forerunner 55, 155, 255 and 945 are not claimed as compatible: the installed
-SDK 9.2.0 cannot enable 55/945, has no 155 profile, and the 255 simulator
-launches out of memory.
+The epix2 is the only profile validated on real hardware. All other profiles
+are best-effort simulator validations and should be tested on the target watch
+before use.
 
 ## Screenshots
 
