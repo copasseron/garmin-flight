@@ -57,14 +57,6 @@ class FlightTraceView extends WatchUi.View {
         drawCentered(dc, mApp.getStatus(), (height * 17) / 100,
             Graphics.FONT_XTINY, statusColor());
 
-        drawGridLine(dc, (width * 13) / 100, topLine,
-            (width * 87) / 100, topLine);
-        drawGridLine(dc, (width * 13) / 100, middleLine,
-            (width * 87) / 100, middleLine);
-        drawGridLine(dc, (width * 13) / 100, bottomLine,
-            (width * 87) / 100, bottomLine);
-        drawGridLine(dc, centerX, topLine, centerX, bottomLine);
-
         drawGridMetric(dc, "ALTITUDE FT", altitudeValueText(info),
             leftX, topLine + 12, topLine + 36);
         drawGridMetric(dc, "SPEED KT", speedValueText(info),
@@ -73,6 +65,17 @@ class FlightTraceView extends WatchUi.View {
             leftX, middleLine + 12, middleLine + 36);
         drawGridMetric(dc, "VERT SPEED FPM", verticalSpeedValueText(),
             rightX, middleLine + 12, middleLine + 36);
+
+        // Draw the grid after the field contents so the boundary lines stay
+        // continuous instead of being clipped by text background rectangles.
+        // The lines are on field boundaries and do not cross the glyphs.
+        drawGridLine(dc, (width * 13) / 100, topLine,
+            (width * 87) / 100, topLine);
+        drawGridLine(dc, (width * 13) / 100, middleLine,
+            (width * 87) / 100, middleLine);
+        drawGridLine(dc, (width * 13) / 100, bottomLine,
+            (width * 87) / 100, bottomLine);
+        drawGridLine(dc, centerX, topLine, centerX, bottomLine);
 
         drawCentered(dc, "TIME " + elapsedText(), (height * 71) / 100,
             Graphics.FONT_SMALL, Graphics.COLOR_WHITE);
