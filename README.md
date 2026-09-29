@@ -1,8 +1,8 @@
 # Flight Trace
 
-Flight Trace is a Garmin Connect IQ flight assistant for the Garmin epix Gen 2.
-It records a manually started flight as a Garmin activity and provides compact
-offline airport and airspace information.
+Flight Trace is a Garmin Connect IQ flight assistant for compatible Garmin
+watches. It records a manually started flight as a Garmin activity and provides
+compact offline airport and airspace information.
 
 > **Safety notice:** This is an informational, non-certified flight assistant.
 > It must never be the primary source for navigation, airspace status,
@@ -24,15 +24,30 @@ Requirements:
 
 - Garmin Connect IQ SDK 9.2.0 or newer
 - Java 11 or newer
-- Garmin epix Gen 2 simulator or watch
+- One of the validated Garmin device profiles below
 - Monkey C extension for Visual Studio Code
 
-Open the project in Visual Studio Code, choose `epix2`, then run **Monkey C:
-Build Current Project** and **Run Without Debugging**. Use the simulator's GPS
-controls to set a position. The app uses physical simulator buttons only.
+Open the project in Visual Studio Code, choose a device profile, then run
+**Monkey C: Build Current Project** and **Run Without Debugging**. Use the
+simulator's GPS controls to set a position. The app uses physical simulator
+buttons only.
 
 For a physical watch, use **Monkey C: Build for Device**. Never commit the
 developer key or generated build files.
+
+## Compatibility
+
+Validated with Connect IQ SDK 9.2.0 on the simulator. Every profile was checked
+on the three pages with a GPS fix, airport data and active airspace data:
+
+- `epix2`: epix Gen 2 and quatix 7 Sapphire, 416×416
+- `fenix7`: fēnix 7 and quatix 7, 260×260
+- `fenix7x`: fēnix 7X and Enduro 2 family, 280×280
+- `enduro3`: Enduro 3, 280×280
+
+The checks covered the flight, nearest-airport and current-airspace screens:
+all displayed fields remained inside the watch face with no text overlap or
+clipping. Simulator validation is not a substitute for an on-watch test.
 
 ## Screenshots
 

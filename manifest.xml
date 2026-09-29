@@ -9,6 +9,9 @@
         launcherIcon="@Drawables.LauncherIcon">
         <iq:products>
             <iq:product id="epix2" />
+            <iq:product id="fenix7" />
+            <iq:product id="fenix7x" />
+            <iq:product id="enduro3" />
         </iq:products>
             <iq:permissions>
                 <iq:uses-permission id="Positioning" />
