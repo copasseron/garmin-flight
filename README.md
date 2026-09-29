@@ -11,8 +11,10 @@ A Garmin Connect IQ flight assistant for the Garmin epix Gen 2. It records a man
 
 ## MVP behavior
 
-- Press Select or tap the screen to start a flight.
-- Press Select or tap again to stop and save it.
+- Press the physical Select button to start a flight.
+- Press the physical Select button again to stop and save it.
+- Touch and swipe input are disabled intentionally; use the physical Select,
+  Up, and Down buttons only.
 - The main round-screen page shows magnetic track, vertical speed in feet per minute, groundspeed in knots, elapsed activity time, UTC time, altitude, and GPS/recording status.
 - Press the Down button to open a second page showing the nearest French airport, distance in nautical miles, and magnetic bearing. Press Up to return to the flight page.
 - Press Down again to open the current-airspace page. It shows the most restrictive active zone at the GPS position, its class, published frequencies, vertical limits, activation state, and AIRAC label. Up and Down cycle through the three pages.

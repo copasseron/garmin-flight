@@ -13,11 +13,6 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    function onTap(clickEvent) {
-        mApp.toggleRecording();
-        return true;
-    }
-
     function onKey(keyEvent) {
         var key = keyEvent.getKey();
 
