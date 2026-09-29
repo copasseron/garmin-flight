@@ -36,11 +36,11 @@ developer key or generated build files.
 
 ## Screenshots
 
-![Flight page](docs/screenshots/flight-page.png)
-
-![Nearest airport page](docs/screenshots/nearest-airport-page.png)
-
-![Current airspace page](docs/screenshots/airspace-page.png)
+<p align="center">
+  <img src="docs/screenshots/flight-page.png" alt="Flight page" width="280">
+  <img src="docs/screenshots/nearest-airport-page.png" alt="Nearest airport page" width="280">
+  <img src="docs/screenshots/airspace-page.png" alt="Current airspace page" width="280">
+</p>
 
 The airspace page opens with `Down` from the airport page. These are complete
 watch-screen simulator captures; always verify the current build and current
