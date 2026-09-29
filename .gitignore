@@ -11,6 +11,15 @@ developer_key
 .project
 .settings/
 .vscode/settings.json
+__pycache__/
+*.pyc
+
+# External source exports and local generated reports
+export_xml_bd_sia_*.zip
+airspace-quality.json
+
+# Local simulator captures
+-.png
 
 # macOS
 .DS_Store

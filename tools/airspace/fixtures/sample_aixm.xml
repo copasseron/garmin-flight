@@ -1,0 +1,30 @@
+<aixm:Dataset xmlns:aixm="http://www.aixm.aero/schema/4.5" xmlns:gml="http://www.opengis.net/gml" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <aixm:Airspace gml:id="DEMO_CTR">
+    <aixm:AirspaceTimeSlice>
+      <aixm:designatorICAO>DEMO</aixm:designatorICAO>
+      <aixm:name>DEMO CTR</aixm:name>
+      <aixm:type>CTR</aixm:type>
+      <aixm:class>D</aixm:class>
+      <aixm:activation>H24</aixm:activation>
+      <aixm:AirspaceVolume>
+        <aixm:lowerLimit uom="FT">SFC</aixm:lowerLimit>
+        <aixm:upperLimit uom="FT">2500</aixm:upperLimit>
+        <aixm:upperLimitReference>AMSL</aixm:upperLimitReference>
+        <aixm:horizontalProjection>
+          <gml:Polygon>
+            <gml:exterior><gml:LinearRing><gml:posList>48.70 2.10 48.70 2.60 49.00 2.60 49.00 2.10 48.70 2.10</gml:posList></gml:LinearRing></gml:exterior>
+          </gml:Polygon>
+        </aixm:horizontalProjection>
+      </aixm:AirspaceVolume>
+    </aixm:AirspaceTimeSlice>
+  </aixm:Airspace>
+  <aixm:AirTrafficControlService gml:id="DEMO_TWR_SERVICE">
+    <aixm:serviceType>TWR</aixm:serviceType>
+    <aixm:clientAirspace xlink:href="#DEMO_CTR"/>
+    <aixm:radioCommunication xlink:href="#DEMO_TWR_CHANNEL"/>
+  </aixm:AirTrafficControlService>
+  <aixm:RadioCommunicationChannel gml:id="DEMO_TWR_CHANNEL">
+    <aixm:frequencyTransmission uom="MHz">118.700</aixm:frequencyTransmission>
+    <aixm:rank>1</aixm:rank>
+  </aixm:RadioCommunicationChannel>
+</aixm:Dataset>

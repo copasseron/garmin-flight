@@ -17,4 +17,20 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
         mApp.toggleRecording();
         return true;
     }
+
+    function onKey(keyEvent) {
+        var key = keyEvent.getKey();
+
+        if (key == WatchUi.KEY_DOWN) {
+            mApp.showNextPage();
+            return true;
+        }
+
+        if (key == WatchUi.KEY_UP) {
+            mApp.showPreviousPage();
+            return true;
+        }
+
+        return true;
+    }
 }

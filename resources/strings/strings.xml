@@ -1,3 +1,4 @@
 <strings>
     <string id="AppName">Flight Trace</string>
+    <string id="MagneticDeclinationTitle">Magnetic declination (degrees, east positive)</string>
 </strings>
