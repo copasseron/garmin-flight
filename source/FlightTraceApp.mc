@@ -32,10 +32,6 @@ class FlightTraceApp extends Application.AppBase {
     }
 
     function onStart(state) {
-        // This app is intentionally operated with the physical buttons only.
-        // Keep touch disabled while the app is in the foreground so a tap
-        // cannot start/stop a recording or change pages accidentally.
-        WatchUi.configureTouchEvents({:enabled => false});
         mPage = 0;
         enablePositioning();
         mPositionTimer.start(method(:pollPosition), 1000, true);

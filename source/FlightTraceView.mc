@@ -17,6 +17,15 @@ class FlightTraceView extends WatchUi.View {
     }
 
     function onShow() {
+        // Configure touch only after the view is foregrounded. Calling this
+        // from AppBase.onStart can throw on physical watches even though it
+        // works in the simulator.
+        try {
+            WatchUi.configureTouchEvents({:enabled => false});
+        } catch (exception) {
+            // Button behavior remains available if a device rejects the
+            // touch configuration for its current foreground state.
+        }
         mTimer.start(method(:onTimer), 1000, true);
     }
 
