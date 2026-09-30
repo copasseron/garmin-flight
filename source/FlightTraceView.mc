@@ -251,6 +251,10 @@ class FlightTraceView extends WatchUi.View {
 
         drawAirportSlot(dc, centerX, centerY, (width * 34) / 100,
             (height * 19) / 100);
+        drawCenteredSafeAt(dc,
+            airportShortName(airport[:ident], airport[:name]), centerX,
+            centerY - 57, Graphics.FONT_SMALL, Graphics.COLOR_LT_GRAY,
+            (width * 76) / 100);
         // Keep all four ICAO letters visible on the 260px and smaller
         // Forerunner screens; the large font used by the AMOLED watches does
         // not fit those round displays.
@@ -523,11 +527,32 @@ class FlightTraceView extends WatchUi.View {
         return degrees;
     }
 
-    function airportName(name) {
-        if (name.length() > 22) {
-            return name.substring(0, 22);
+    function airportShortName(ident, name) {
+        // Use the chart-style short callout instead of the long legal name.
+        if (ident.equals("LFPZ")) {
+            return "SAINT-CYR";
         }
-        return name;
+
+        var shortName = name;
+        var upperName = name.toUpper();
+        var suffixes = [" AIRPORT", " AIRFIELD", " AERODROME", " AÉRODROME",
+            " AIR BASE", " BASE"];
+        for (var i = 0; i < suffixes.size(); i++) {
+            var suffixIndex = upperName.find(suffixes[i]);
+            if (suffixIndex != null) {
+                shortName = name.substring(0, suffixIndex);
+                break;
+            }
+        }
+
+        var detailIndex = shortName.find(" (");
+        if (detailIndex != null) {
+            shortName = shortName.substring(0, detailIndex);
+        }
+        if (shortName.length() == 0) {
+            shortName = name;
+        }
+        return shortName.toUpper();
     }
 
     function elapsedText() {
