@@ -1,0 +1,94 @@
+name: Build Connect IQ packages
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.device }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - epix2
+          - fenix7
+          - fenix7x
+          - enduro3
+          - fr165
+          - fr265
+          - fr955
+          - fr965
+          - fr970
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install signing key
+        env:
+          GARMIN_DEVELOPER_KEY_B64: ${{ secrets.GARMIN_DEVELOPER_KEY_B64 }}
+        run: |
+          test -n "$GARMIN_DEVELOPER_KEY_B64" || {
+            echo "Missing GARMIN_DEVELOPER_KEY_B64 repository secret"
+            exit 1
+          }
+          printf '%s' "$GARMIN_DEVELOPER_KEY_B64" | base64 --decode > developer_key
+          chmod 600 developer_key
+
+      - name: Build package
+        uses: blackshadev/garmin-connectiq-build-action@9.2.0
+        with:
+          projectJungle: ./monkey.jungle
+          developerKey: ./developer_key
+          outputPath: ./dist/flight-trace-${{ matrix.device }}.prg
+          device: ${{ matrix.device }}
+          typeCheck: '1'
+          extraArgs: '-r'
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f developer_key
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flight-trace-${{ matrix.device }}
+          path: dist/flight-trace-${{ matrix.device }}.prg
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: flight-trace-*
+          path: packages
+          merge-multiple: true
+
+      - name: Create release and upload packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Flight Trace $GITHUB_REF_NAME" \
+            --generate-notes
+          find packages -type f -name '*.prg' -print0 |
+            xargs -0 -r gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"

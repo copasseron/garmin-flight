@@ -13,10 +13,13 @@ compact offline airport and airspace information.
 
 - Flight recording with GPS track, altitude, speed, magnetic track and vertical speed.
 - Nearest-airport page with ICAO identifier, distance, magnetic bearing, radio frequency and runways.
+- Ground altimeter calibration against the nearest airport elevation, with confirmation and a 1 NM / near-zero-speed guard.
 - Current-airspace page for P, TMA and CTR zones, with class, limits and published frequencies.
+- Health page with heart rate, respiration, oxygen saturation and temperature when available.
 - Three pages navigated with the physical `Up` and `Down` buttons.
 - Physical `Select` button to start and stop recording. Touch and swipe input are disabled.
 - French airport and airspace data bundled offline; no network connection is required on the watch.
+- Airport callouts use the compact SIA AIXM/VAC name where it is published (for example `LFPZ` displays `SAINT CYR`).
 
 ## Build
 
@@ -34,6 +37,33 @@ buttons only.
 
 For a physical watch, use **Monkey C: Build for Device**. Never commit the
 developer key or generated build files.
+
+To install a generated package manually, connect the watch by USB, open its
+`GARMIN/APPS` folder, and copy the `.prg` built for that exact device profile
+into it. Eject the watch before disconnecting it. The app then appears in the
+watch's Apps list. For example, use `flight-trace-epix2.prg` for an epix Gen 2;
+use the matching profile for another watch.
+
+### GitHub Actions packages
+
+The repository workflow builds one signed `.prg` per supported device. Add a
+repository secret named `GARMIN_DEVELOPER_KEY_B64` containing the base64 form of
+your local `developer_key`:
+
+```bash
+base64 -i developer_key | tr -d '\n' | pbcopy
+```
+
+Paste the clipboard value into GitHub repository **Settings → Secrets and
+variables → Actions**. Pushes and pull requests produce downloadable workflow
+artifacts. To publish packages in a GitHub Release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The release contains the `.prg` matching each watch profile.
 
 ## Compatibility
 
@@ -86,6 +116,23 @@ python3 tools/airspace/build_airspace_dataset.py \
 
 The epix2 build keeps P, TMA and CTR zones to stay within the watch memory
 budget. The full source export is not embedded.
+
+To refresh the compact airport callouts from the same SIA ZIP:
+
+```text
+python3 tools/airports/build_airport_names.py \
+  ~/Downloads/export_xml_bd_SIA2026-09-03.zip \
+  --output source/FranceAirports.mc \
+  --report /private/tmp/airport-names-report.json
+```
+
+The generator reads the official AIXM `Uni/txtName` values, removes the ICAO
+prefix and replaces the airport name field with that compact callout. It also
+reports airport records not represented in that AIXM export; those local-only
+records receive a compact fallback from the existing reference name.
+
+The same export supplies `Ahp/valElev` in feet for airport elevation. If an
+airport has no published elevation, the calibration action is not offered.
 
 ## Data and licence
 
