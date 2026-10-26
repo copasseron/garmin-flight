@@ -42,7 +42,9 @@ class FlightTraceView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
-        if (mApp.getPage() == 1) {
+        if (mApp.isWaitingForNearestCalibration()) {
+            drawAltitudeCalibrationWaitPage(dc);
+        } else if (mApp.getPage() == 1) {
             drawAirportPage(dc);
         } else if (mApp.getPage() == 2) {
             drawAirspacePage(dc);
@@ -53,6 +55,50 @@ class FlightTraceView extends WatchUi.View {
         }
 
         drawRecordingIndicator(dc);
+    }
+
+    function drawAltitudeCalibrationWaitPage(dc) {
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var airport = mApp.getNearestAirport();
+        var maxWidth = (width * 82) / 100;
+
+        drawCenteredSafe(dc, "ALTITUDE", (height * 10) / 100,
+            Graphics.FONT_MEDIUM, Graphics.COLOR_WHITE, maxWidth);
+        drawCenteredSafe(dc, "CALIBRATION", (height * 20) / 100,
+            Graphics.FONT_MEDIUM, Graphics.COLOR_WHITE, maxWidth);
+
+        if (airport == null) {
+            drawCenteredSafe(dc, "WAITING FOR GPS", (height * 45) / 100,
+                Graphics.FONT_SMALL, Graphics.COLOR_YELLOW, maxWidth);
+        } else {
+            drawCenteredSafe(dc, "GPS FIX RECEIVED", (height * 33) / 100,
+                Graphics.FONT_XTINY, Graphics.COLOR_GREEN, maxWidth);
+            drawCenteredSafe(dc, airport[:ident], (height * 44) / 100,
+                Graphics.FONT_LARGE, Graphics.COLOR_WHITE, maxWidth);
+            drawCenteredSafe(dc,
+                distanceText(airport[:distanceMeters]),
+                (height * 56) / 100, Graphics.FONT_SMALL,
+                Graphics.COLOR_LT_GRAY, maxWidth);
+
+            if (airport[:elevationFeet] == null) {
+                drawCenteredSafe(dc, "NO ELEVATION DATA", (height * 68) / 100,
+                    Graphics.FONT_XTINY, Graphics.COLOR_YELLOW, maxWidth);
+            } else {
+                drawCenteredSafe(dc,
+                    "ELEV " + airport[:elevationFeet].format("%d") + " FT",
+                    (height * 68) / 100, Graphics.FONT_SMALL,
+                    Graphics.COLOR_WHITE, maxWidth);
+                drawCenteredSafe(dc, "WAITING FOR ALTITUDE",
+                    (height * 78) / 100, Graphics.FONT_XTINY,
+                    Graphics.COLOR_YELLOW, maxWidth);
+            }
+        }
+
+        drawCenteredSafe(dc, "START: PROPOSE CALIBRATION", (height * 84) / 100,
+            Graphics.FONT_XTINY, Graphics.COLOR_GREEN, maxWidth);
+        drawCenteredSafe(dc, "BACK: CHANGE SOURCE", (height * 93) / 100,
+            Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, maxWidth);
     }
 
     function drawHealthPage(dc) {

@@ -13,7 +13,7 @@ compact offline airport and airspace information.
 
 - Flight recording with GPS track, altitude, speed, magnetic track and vertical speed.
 - Nearest-airport page with ICAO identifier, distance, magnetic bearing, radio frequency and runways.
-- Ground altimeter calibration against the nearest airport elevation, with confirmation and a 1 NM / near-zero-speed guard.
+- Ground altimeter calibration against the nearest airport elevation, with confirmation.
 - Current-airspace page for P, TMA and CTR zones, with class, limits and published frequencies.
 - Health page with heart rate, respiration, oxygen saturation and temperature when available.
 - Three pages navigated with the physical `Up` and `Down` buttons.

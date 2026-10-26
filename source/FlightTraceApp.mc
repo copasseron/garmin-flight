@@ -506,17 +506,10 @@ class FlightTraceApp extends Application.AppBase {
 
     function canCalibrateNearestAirport() {
         if (mNearestAirport == null ||
-            mNearestAirport[:elevationFeet] == null ||
-            mNearestAirport[:distanceMeters] > 1852.0) {
+            mNearestAirport[:elevationFeet] == null) {
             return false;
         }
         if (mPositionInfo == null || mPositionInfo.position == null) {
-            return false;
-        }
-        // A stationary watch can legitimately report no speed value.  A
-        // non-null speed above 5 kt is still rejected as unsafe for a ground
-        // elevation calibration.
-        if (mPositionInfo.speed != null && mPositionInfo.speed > 2.57222) {
             return false;
         }
         return getDisplayedAltitudeFeet(mPositionInfo) != null;
@@ -526,6 +519,27 @@ class FlightTraceApp extends Application.AppBase {
         if (!canCalibrateNearestAirport()) {
             return;
         }
+        pushAltitudeCalibrationConfirmation();
+    }
+
+    // Best-effort proposal used when the user presses Start on the waiting
+    // screen.  The airport and its published elevation are enough to present
+    // the target; the raw GPS altitude can arrive a little later.
+    function requestAltitudeCalibrationProposal() {
+        if (mNearestAirport == null) {
+            mStatus = "WAITING FOR GPS";
+            WatchUi.requestUpdate();
+            return;
+        }
+        if (mNearestAirport[:elevationFeet] == null) {
+            mStatus = "NO AIRPORT ELEVATION";
+            WatchUi.requestUpdate();
+            return;
+        }
+        pushAltitudeCalibrationConfirmation();
+    }
+
+    function pushAltitudeCalibrationConfirmation() {
         var airport = mNearestAirport;
         WatchUi.pushView(
             new WatchUi.Confirmation("CALIBRATE " + airport[:ident] + " " +
@@ -535,15 +549,28 @@ class FlightTraceApp extends Application.AppBase {
         );
     }
 
-    function applyAltitudeCalibration() {
+    function confirmAltitudeCalibration() {
         if (!canCalibrateNearestAirport()) {
+            // Keep the dedicated waiting screen visible until the missing
+            // altitude arrives.  Position updates will retry automatically.
+            mStatus = "WAITING FOR ALTITUDE";
+            WatchUi.requestUpdate();
             return;
         }
         var rawAltitudeFeet = getDisplayedAltitudeFeet(mPositionInfo);
         mAltitudeCalibrationFeet = mNearestAirport[:elevationFeet] - rawAltitudeFeet;
         mAltitudeCalibrationAirport = mNearestAirport[:ident];
         mPendingNearestCalibration = false;
+        mStatus = "CALIBRATED " + mAltitudeCalibrationAirport;
         WatchUi.requestUpdate();
+    }
+
+    function cancelAltitudeCalibrationProposal() {
+        if (mPendingNearestCalibration) {
+            mPendingNearestCalibration = false;
+            mStatus = "GARMIN ALTITUDE";
+            WatchUi.requestUpdate();
+        }
     }
 
     function applyManualAltitudeText(text) {

@@ -10,7 +10,9 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() {
-        if (mApp.getPage() == 1 && !mApp.hasRecordingSession() &&
+        if (mApp.isWaitingForNearestCalibration()) {
+            mApp.requestAltitudeCalibrationProposal();
+        } else if (mApp.getPage() == 1 && !mApp.hasRecordingSession() &&
             mApp.canCalibrateNearestAirport()) {
             mApp.requestAltitudeCalibration();
         } else {
@@ -70,7 +72,9 @@ class FlightTraceCalibrationConfirmationDelegate extends WatchUi.ConfirmationDel
 
     function onResponse(response) {
         if (response == WatchUi.CONFIRM_YES) {
-            mApp.applyAltitudeCalibration();
+            mApp.confirmAltitudeCalibration();
+        } else {
+            mApp.cancelAltitudeCalibrationProposal();
         }
         return true;
     }
