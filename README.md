@@ -44,26 +44,10 @@ into it. Eject the watch before disconnecting it. The app then appears in the
 watch's Apps list. For example, use `flight-trace-epix2.prg` for an epix Gen 2;
 use the matching profile for another watch.
 
-### GitHub Actions packages
-
-The repository workflow builds one signed `.prg` per supported device. Add a
-repository secret named `GARMIN_DEVELOPER_KEY_B64` containing the base64 form of
-your local `developer_key`:
-
-```bash
-base64 -i developer_key | tr -d '\n' | pbcopy
-```
-
-Paste the clipboard value into GitHub repository **Settings → Secrets and
-variables → Actions**. Pushes and pull requests produce downloadable workflow
-artifacts. To publish packages in a GitHub Release:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The release contains the `.prg` matching each watch profile.
+Signed device packages are built automatically and attached to GitHub Releases.
+To install one, download the `.prg` matching your watch (for example
+`flight-trace-epix2.prg`), connect the watch by USB, copy it into
+`GARMIN/APPS`, eject the watch, then open the app from the watch's Apps list.
 
 ## Compatibility
 

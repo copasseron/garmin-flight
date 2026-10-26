@@ -17,6 +17,9 @@ class FlightTraceApp extends Application.AppBase {
     var mActivityMonitorInfo = null;
     var mAltitudeCalibrationFeet = null;
     var mAltitudeCalibrationAirport = null;
+    var mPendingManualAltitudeFeet = null;
+    var mPendingNearestCalibration = false;
+    var mAltitudeSourcePromptShown = false;
     var mLastAltitude = null;
     var mLastAltitudeMoment = null;
     var mVerticalSpeedMps = null;
@@ -146,6 +149,11 @@ class FlightTraceApp extends Application.AppBase {
         mPositionInfo = info;
         if (info.position != null) {
             updateNearestAirport(info.position);
+            applyPendingManualAltitude();
+            if (mPendingNearestCalibration && canCalibrateNearestAirport()) {
+                mPendingNearestCalibration = false;
+                requestAltitudeCalibration();
+            }
             updateCurrentAirspace(info.position, info.altitude);
         }
         WatchUi.requestUpdate();
@@ -306,7 +314,7 @@ class FlightTraceApp extends Application.AppBase {
         }
     }
 
-    function finishRecordingAndExit() {
+    function saveRecordingAndExit() {
         if (mSession == null) {
             System.exit();
             return;
@@ -332,6 +340,58 @@ class FlightTraceApp extends Application.AppBase {
             System.exit();
         } catch (exception) {
             mStatus = "SAVE FAILED";
+            WatchUi.requestUpdate();
+        }
+    }
+
+    function resumeLaterAndExit() {
+        if (mSession == null) {
+            System.exit();
+            return;
+        }
+
+        try {
+            if (isRecording() && !pauseRecording()) {
+                mStatus = "PAUSE FAILED";
+                WatchUi.requestUpdate();
+                return;
+            }
+            // Leave the unfinished Session open. ActivityRecording keeps the
+            // single unfinished session available to createSession() when the
+            // app is opened again, where Select can resume it.
+            System.exit();
+        } catch (exception) {
+            mStatus = "RESUME LATER FAILED";
+            WatchUi.requestUpdate();
+        }
+    }
+
+    function discardRecordingAndExit() {
+        if (mSession == null) {
+            System.exit();
+            return;
+        }
+
+        try {
+            stopPositionTracking();
+            if (isRecording() && !mSession.stop()) {
+                mStatus = "STOP FAILED";
+                WatchUi.requestUpdate();
+                return;
+            }
+            if (!mSession.discard()) {
+                mStatus = "DISCARD FAILED";
+                WatchUi.requestUpdate();
+                return;
+            }
+            mSession = null;
+            mStartMoment = null;
+            mPausedMoment = null;
+            mPausedSeconds = 0;
+            mStatus = "DISCARDED";
+            System.exit();
+        } catch (exception) {
+            mStatus = "DISCARD FAILED";
             WatchUi.requestUpdate();
         }
     }
@@ -362,6 +422,60 @@ class FlightTraceApp extends Application.AppBase {
 
     function getPositionInfo() {
         return mPositionInfo;
+    }
+
+    function requestAltitudeSourceSelection() {
+        if (mAltitudeSourcePromptShown || mSession != null) {
+            return;
+        }
+        mAltitudeSourcePromptShown = true;
+
+        var menu = new WatchUi.Menu();
+        menu.setTitle("ALTITUDE SOURCE");
+        menu.addItem("GARMIN ALTITUDE", :garmin);
+        menu.addItem("NEAREST AIRPORT", :airport);
+        menu.addItem("MANUAL HEIGHT", :manual);
+        WatchUi.pushView(
+            menu,
+            new FlightTraceAltitudeSourceMenuDelegate(self),
+            WatchUi.SLIDE_IMMEDIATE
+        );
+    }
+
+    function selectAltitudeSource(item) {
+        if (item == :garmin) {
+            mAltitudeCalibrationFeet = null;
+            mAltitudeCalibrationAirport = null;
+            mPendingManualAltitudeFeet = null;
+            mPendingNearestCalibration = false;
+            mStatus = "GARMIN ALTITUDE";
+            WatchUi.requestUpdate();
+        } else if (item == :airport) {
+            if (canCalibrateNearestAirport()) {
+                requestAltitudeCalibration();
+            } else {
+                mPendingNearestCalibration = true;
+                if (mNearestAirport == null) {
+                    mStatus = "WAITING FOR GPS";
+                } else if (mNearestAirport[:elevationFeet] == null) {
+                    mStatus = "NO AIRPORT ELEVATION";
+                } else {
+                    mStatus = "STOP TO CALIBRATE";
+                }
+                WatchUi.requestUpdate();
+            }
+        } else if (item == :manual) {
+            mPendingNearestCalibration = false;
+            var initialText = "0";
+            if (getDisplayedAltitudeFeet(mPositionInfo) != null) {
+                initialText = getDisplayedAltitudeFeet(mPositionInfo).format("%0.0f");
+            }
+            WatchUi.pushView(
+                new WatchUi.TextPicker(initialText),
+                new FlightTraceManualAltitudeDelegate(self),
+                WatchUi.SLIDE_IMMEDIATE
+            );
+        }
     }
 
     function getDisplayedAltitudeFeet(info) {
@@ -408,7 +522,39 @@ class FlightTraceApp extends Application.AppBase {
         var rawAltitudeFeet = getDisplayedAltitudeFeet(mPositionInfo);
         mAltitudeCalibrationFeet = mNearestAirport[:elevationFeet] - rawAltitudeFeet;
         mAltitudeCalibrationAirport = mNearestAirport[:ident];
+        mPendingNearestCalibration = false;
         WatchUi.requestUpdate();
+    }
+
+    function applyManualAltitudeText(text) {
+        var targetFeet = null;
+        try {
+            targetFeet = text.toNumber();
+        } catch (exception) {
+            targetFeet = null;
+        }
+
+        if (targetFeet == null || targetFeet < -2000 || targetFeet > 60000) {
+            mStatus = "INVALID ALTITUDE";
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        mPendingManualAltitudeFeet = targetFeet;
+        applyPendingManualAltitude();
+        WatchUi.requestUpdate();
+    }
+
+    function applyPendingManualAltitude() {
+        if (mPendingManualAltitudeFeet == null ||
+            getDisplayedAltitudeFeet(mPositionInfo) == null) {
+            return;
+        }
+        mAltitudeCalibrationFeet = mPendingManualAltitudeFeet -
+            getDisplayedAltitudeFeet(mPositionInfo);
+        mAltitudeCalibrationAirport = null;
+        mPendingManualAltitudeFeet = null;
+        mStatus = "MANUAL ALTITUDE";
     }
 
     function getAltitudeCalibrationFeet() {

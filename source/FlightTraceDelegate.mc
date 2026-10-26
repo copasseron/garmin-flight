@@ -20,9 +20,19 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
+        if (!mApp.hasRecordingSession()) {
+            System.exit();
+            return true;
+        }
+
+        var menu = new WatchUi.Menu();
+        menu.setTitle("FLIGHT");
+        menu.addItem("SAVE & EXIT", :save);
+        menu.addItem("RESUME LATER", :resume);
+        menu.addItem("DISCARD", :discard);
         WatchUi.pushView(
-            new WatchUi.Confirmation("LEAVE APP?"),
-            new FlightTraceExitConfirmationDelegate(mApp),
+            menu,
+            new FlightTraceExitMenuDelegate(mApp),
             WatchUi.SLIDE_IMMEDIATE
         );
         return true;
@@ -61,18 +71,53 @@ class FlightTraceCalibrationConfirmationDelegate extends WatchUi.ConfirmationDel
     }
 }
 
-class FlightTraceExitConfirmationDelegate extends WatchUi.ConfirmationDelegate {
+class FlightTraceAltitudeSourceMenuDelegate extends WatchUi.MenuInputDelegate {
     var mApp;
 
     function initialize(app) {
-        ConfirmationDelegate.initialize();
+        MenuInputDelegate.initialize();
         mApp = app;
     }
 
-    function onResponse(response) {
-        if (response == WatchUi.CONFIRM_YES) {
-            mApp.finishRecordingAndExit();
-        }
+    function onMenuItem(item) {
+        mApp.selectAltitudeSource(item);
+    }
+}
+
+class FlightTraceManualAltitudeDelegate extends WatchUi.TextPickerDelegate {
+    var mApp;
+
+    function initialize(app) {
+        TextPickerDelegate.initialize();
+        mApp = app;
+    }
+
+    function onTextEntered(text, changed) {
+        mApp.applyManualAltitudeText(text);
         return true;
+    }
+
+    function onCancel() {
+        // Keep Garmin altitude if manual entry is cancelled.
+        return true;
+    }
+}
+
+class FlightTraceExitMenuDelegate extends WatchUi.MenuInputDelegate {
+    var mApp;
+
+    function initialize(app) {
+        MenuInputDelegate.initialize();
+        mApp = app;
+    }
+
+    function onMenuItem(item) {
+        if (item == :save) {
+            mApp.saveRecordingAndExit();
+        } else if (item == :resume) {
+            mApp.resumeLaterAndExit();
+        } else if (item == :discard) {
+            mApp.discardRecordingAndExit();
+        }
     }
 }

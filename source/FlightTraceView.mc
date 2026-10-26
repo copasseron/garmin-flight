@@ -27,6 +27,7 @@ class FlightTraceView extends WatchUi.View {
             // touch configuration for its current foreground state.
         }
         mTimer.start(method(:onTimer), 1000, true);
+        mApp.requestAltitudeSourceSelection();
     }
 
     function onHide() {
