@@ -10,14 +10,19 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() {
-        mApp.toggleRecording();
+        if (mApp.getPage() == 1 && !mApp.hasRecordingSession() &&
+            mApp.canCalibrateNearestAirport()) {
+            mApp.requestAltitudeCalibration();
+        } else {
+            mApp.toggleRecording();
+        }
         return true;
     }
 
     function onBack() {
         WatchUi.pushView(
             new WatchUi.Confirmation("LEAVE APP?"),
-            new FlightTraceExitConfirmationDelegate(),
+            new FlightTraceExitConfirmationDelegate(mApp),
             WatchUi.SLIDE_IMMEDIATE
         );
         return true;
@@ -40,14 +45,33 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
     }
 }
 
-class FlightTraceExitConfirmationDelegate extends WatchUi.ConfirmationDelegate {
-    function initialize() {
+class FlightTraceCalibrationConfirmationDelegate extends WatchUi.ConfirmationDelegate {
+    var mApp;
+
+    function initialize(app) {
         ConfirmationDelegate.initialize();
+        mApp = app;
     }
 
     function onResponse(response) {
         if (response == WatchUi.CONFIRM_YES) {
-            System.exit();
+            mApp.applyAltitudeCalibration();
+        }
+        return true;
+    }
+}
+
+class FlightTraceExitConfirmationDelegate extends WatchUi.ConfirmationDelegate {
+    var mApp;
+
+    function initialize(app) {
+        ConfirmationDelegate.initialize();
+        mApp = app;
+    }
+
+    function onResponse(response) {
+        if (response == WatchUi.CONFIRM_YES) {
+            mApp.finishRecordingAndExit();
         }
         return true;
     }

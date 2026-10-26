@@ -45,9 +45,92 @@ class FlightTraceView extends WatchUi.View {
             drawAirportPage(dc);
         } else if (mApp.getPage() == 2) {
             drawAirspacePage(dc);
+        } else if (mApp.getPage() == 3) {
+            drawHealthPage(dc);
         } else {
             drawFlightPage(dc);
         }
+
+        drawRecordingIndicator(dc);
+    }
+
+    function drawHealthPage(dc) {
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var centerX = width / 2;
+        var leftX = width / 4;
+        var rightX = (width * 3) / 4;
+        var topLine = (height * 21) / 100;
+        var middleLine = (height * 51) / 100;
+        var bottomLine = (height * 81) / 100;
+
+        drawCentered(dc, "HEALTH", (height * 5) / 100,
+            Graphics.FONT_SMALL, Graphics.COLOR_WHITE);
+
+        drawHealthMetric(dc, "BPM", healthHeartRateText(), leftX,
+            topLine + 12, topLine + 36);
+        drawHealthMetric(dc, "RESP / MIN", healthRespirationText(), rightX,
+            topLine + 12, topLine + 36);
+        drawHealthMetric(dc, "SpO2 %", healthOxygenText(), leftX,
+            middleLine + 12, middleLine + 36);
+        drawHealthMetric(dc, "TEMP C", healthTemperatureText(), rightX,
+            middleLine + 12, middleLine + 36);
+
+        drawGridLine(dc, (width * 13) / 100, topLine,
+            (width * 87) / 100, topLine);
+        drawGridLine(dc, (width * 13) / 100, middleLine,
+            (width * 87) / 100, middleLine);
+        drawGridLine(dc, (width * 13) / 100, bottomLine,
+            (width * 87) / 100, bottomLine);
+        drawGridLine(dc, centerX, topLine, centerX, bottomLine);
+    }
+
+    function drawHealthMetric(dc, label, value, x, labelY, valueY) {
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLACK);
+        dc.drawText(x, labelY, Graphics.FONT_XTINY, label,
+            Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.drawText(x, valueY, Graphics.FONT_MEDIUM, value,
+            Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    function healthHeartRateText() {
+        var info = mApp.getSensorInfo();
+        if (info == null || info.heartRate == null) {
+            return "--";
+        }
+        return info.heartRate.format("%03.0f");
+    }
+
+    function healthRespirationText() {
+        var info = mApp.getActivityMonitorInfo();
+        if (info == null || info.respirationRate == null) {
+            return "--";
+        }
+        return info.respirationRate.format("%02.0f");
+    }
+
+    function healthOxygenText() {
+        var info = mApp.getSensorInfo();
+        if (info == null) {
+            return "--";
+        }
+        try {
+            if (info.oxygenSaturation == null) {
+                return "--";
+            }
+            return info.oxygenSaturation.format("%02.0f");
+        } catch (exception) {
+            return "--";
+        }
+    }
+
+    function healthTemperatureText() {
+        var info = mApp.getSensorInfo();
+        if (info == null || info.temperature == null) {
+            return "--";
+        }
+        return info.temperature.format("%0.1f");
     }
 
     function drawFlightPage(dc) {
@@ -89,8 +172,6 @@ class FlightTraceView extends WatchUi.View {
 
         drawCentered(dc, "TIME " + elapsedText(), (height * 71) / 100,
             Graphics.FONT_SMALL, Graphics.COLOR_WHITE);
-        drawCentered(dc, gpsStatusText(info), (height * 83) / 100,
-            Graphics.FONT_XTINY, gpsStatusColor(info));
         drawStartAction(dc, height, 90);
     }
 
@@ -251,10 +332,14 @@ class FlightTraceView extends WatchUi.View {
 
         drawAirportSlot(dc, centerX, centerY, (width * 34) / 100,
             (height * 19) / 100);
-        drawCenteredSafeAt(dc,
-            airportShortName(airport[:ident], airport[:name]), centerX,
-            centerY - 57, Graphics.FONT_SMALL, Graphics.COLOR_LT_GRAY,
-            (width * 76) / 100);
+        var shortName = airportShortName(airport[:name]);
+        if (shortName.length() > 0) {
+            // Keep the chart callout to one compact line.  It has its own
+            // vertical slot so it cannot touch the ICAO identifier below.
+            drawCenteredSafeAt(dc, shortName, centerX, centerY - 54,
+                Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+                (width * 70) / 100);
+        }
         // Keep all four ICAO letters visible on the 260px and smaller
         // Forerunner screens; the large font used by the AMOLED watches does
         // not fit those round displays.
@@ -372,6 +457,27 @@ class FlightTraceView extends WatchUi.View {
         dc.drawLine(x1, y1, x2, y2);
     }
 
+    function drawRecordingIndicator(dc) {
+        var state = mApp.recordingIndicatorState();
+        if (state == 0) {
+            return;
+        }
+
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var centerX = width / 2;
+        var centerY = height / 2;
+        var radius = (width < height ? width : height) / 2 - 4;
+        var color = state == 1 ? Graphics.COLOR_RED : Graphics.COLOR_GREEN;
+
+        // Running-style status ring: keep the whole stroke inside the display
+        // and draw it last so the recording state is always visible.
+        dc.setColor(color, Graphics.COLOR_BLACK);
+        dc.setPenWidth(4);
+        dc.drawCircle(centerX, centerY, radius);
+        dc.setPenWidth(1);
+    }
+
     function drawCentered(dc, text, y, font, color) {
         drawCenteredAt(dc, text, dc.getWidth() / 2, y, font, color);
     }
@@ -421,7 +527,7 @@ class FlightTraceView extends WatchUi.View {
     }
 
     function drawStartAction(dc, height, yPercent) {
-        if (!mApp.isRecording()) {
+        if (!mApp.isRecording() && !mApp.hasRecordingSession()) {
             drawCentered(dc, "START FLIGHT", (height * yPercent) / 100,
                 Graphics.FONT_XTINY, actionColor());
         }
@@ -464,10 +570,11 @@ class FlightTraceView extends WatchUi.View {
     }
 
     function altitudeValueText(info) {
-        if (info == null || info.altitude == null) {
+        var altitudeFeet = mApp.getDisplayedAltitudeFeet(info);
+        if (altitudeFeet == null) {
             return "--";
         }
-        return (info.altitude * 3.28084).format("%0.0f");
+        return altitudeFeet.format("%0.0f");
     }
 
     function speedValueText(info) {
@@ -527,32 +634,9 @@ class FlightTraceView extends WatchUi.View {
         return degrees;
     }
 
-    function airportShortName(ident, name) {
-        // Use the chart-style short callout instead of the long legal name.
-        if (ident.equals("LFPZ")) {
-            return "SAINT-CYR";
-        }
-
-        var shortName = name;
-        var upperName = name.toUpper();
-        var suffixes = [" AIRPORT", " AIRFIELD", " AERODROME", " AÉRODROME",
-            " AIR BASE", " BASE"];
-        for (var i = 0; i < suffixes.size(); i++) {
-            var suffixIndex = upperName.find(suffixes[i]);
-            if (suffixIndex != null) {
-                shortName = name.substring(0, suffixIndex);
-                break;
-            }
-        }
-
-        var detailIndex = shortName.find(" (");
-        if (detailIndex != null) {
-            shortName = shortName.substring(0, detailIndex);
-        }
-        if (shortName.length() == 0) {
-            shortName = name;
-        }
-        return shortName.toUpper();
+    function airportShortName(name) {
+        // FranceAirports already stores the compact SIA AIXM/VAC callout.
+        return name.toUpper();
     }
 
     function elapsedText() {

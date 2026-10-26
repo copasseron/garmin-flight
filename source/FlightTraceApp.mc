@@ -1,9 +1,11 @@
 using Toybox.Activity;
 using Toybox.ActivityRecording;
+using Toybox.ActivityMonitor;
 using Toybox.Application;
 using Toybox.Attention;
 using Toybox.Math;
 using Toybox.Position;
+using Toybox.Sensor;
 using Toybox.Time;
 using Toybox.Timer;
 using Toybox.WatchUi;
@@ -11,10 +13,17 @@ using Toybox.WatchUi;
 class FlightTraceApp extends Application.AppBase {
     var mSession = null;
     var mPositionInfo = null;
+    var mSensorInfo = null;
+    var mActivityMonitorInfo = null;
+    var mAltitudeCalibrationFeet = null;
+    var mAltitudeCalibrationAirport = null;
     var mLastAltitude = null;
     var mLastAltitudeMoment = null;
     var mVerticalSpeedMps = null;
     var mStartMoment = null;
+    var mPausedMoment = null;
+    var mPausedSeconds = 0;
+    var mRecordingFeedbackUntil = null;
     var mStatus = "READY";
     var mView = null;
     var mAirports = null;
@@ -33,23 +42,49 @@ class FlightTraceApp extends Application.AppBase {
 
     function onStart(state) {
         mPage = 0;
-        enablePositioning();
-        mPositionTimer.start(method(:pollPosition), 1000, true);
-        pollPosition();
+        enableHealthSensors();
+        startPositionTracking();
     }
 
     function onStop(state) {
         mPositionTimer.stop();
         // Do not stop the FIT session here. Connect IQ can call onStop when
-        // the app is suspended, and only the explicit Stop action should end
-        // a flight. Position callbacks are managed by the system across the
+        // the app is suspended; only the confirmed exit action should end
+        // and save a flight. Position callbacks are managed by the system across the
         // inactive/active transition.
     }
 
     function pollPosition() as Void {
+        updateHealthMetrics();
         var info = Position.getInfo();
         if (info != null) {
             onPosition(info);
+        }
+    }
+
+    function enableHealthSensors() as Void {
+        try {
+            Sensor.setEnabledSensors([
+                Sensor.SENSOR_HEARTRATE,
+                Sensor.SENSOR_TEMPERATURE
+            ]);
+        } catch (exception) {
+            // Health values remain unavailable when a device does not expose
+            // one of the requested sensors.
+        }
+    }
+
+    function updateHealthMetrics() as Void {
+        try {
+            mSensorInfo = Sensor.getInfo();
+        } catch (exception) {
+            mSensorInfo = null;
+        }
+
+        try {
+            mActivityMonitorInfo = ActivityMonitor.getInfo();
+        } catch (exception) {
+            mActivityMonitorInfo = null;
         }
     }
 
@@ -74,6 +109,22 @@ class FlightTraceApp extends Application.AppBase {
         }
 
         Position.enableLocationEvents(options, method(:onPosition));
+    }
+
+    function startPositionTracking() as Void {
+        enablePositioning();
+        mPositionTimer.start(method(:pollPosition), 1000, true);
+        pollPosition();
+    }
+
+    function stopPositionTracking() as Void {
+        mPositionTimer.stop();
+        try {
+            Position.enableLocationEvents(Position.LOCATION_DISABLE, method(:onPosition));
+        } catch (exception) {
+            // The FIT session is still stopped even if a device rejects the
+            // location disable request during a lifecycle transition.
+        }
     }
 
     function onPosition(info as Position.Info) as Void {
@@ -143,21 +194,28 @@ class FlightTraceApp extends Application.AppBase {
                 :bearingDegrees => closestBearing,
                 :radio => closest[4],
                 :runways => closest[5],
-                :category => closest[6]
+                :category => closest[6],
+                :elevationFeet => closest[7]
             };
         }
     }
 
     function toggleRecording() {
-        if (isRecording()) {
-            stopRecording();
-        } else {
+        if (mSession == null) {
             startRecording();
+        } else if (isRecording()) {
+            pauseRecording();
+        } else {
+            resumeRecording();
         }
         WatchUi.requestUpdate();
     }
 
     function startRecording() {
+        if (mSession != null) {
+            return resumeRecording();
+        }
+
         if (isRecording()) {
             mStatus = "ALREADY RECORDING";
             return false;
@@ -182,8 +240,11 @@ class FlightTraceApp extends Application.AppBase {
             }
 
             mStartMoment = Time.now();
+            mPausedMoment = null;
+            mPausedSeconds = 0;
             mVerticalSpeedMps = null;
             mStatus = "RECORDING";
+            showRecordingFeedback();
             playRecordingFeedback(true);
             return true;
         } catch (exception) {
@@ -194,25 +255,84 @@ class FlightTraceApp extends Application.AppBase {
         }
     }
 
-    function stopRecording() {
+    function pauseRecording() {
         if (!isRecording()) {
-            mStatus = "NOT RECORDING";
+            mStatus = "PAUSED";
             return false;
         }
 
         try {
-            mSession.stop();
-            mSession.save();
-            mSession = null;
-            mStartMoment = null;
-            mStatus = "SAVED - SYNC";
+            if (!mSession.stop()) {
+                mStatus = "PAUSE FAILED";
+                return false;
+            }
+            stopPositionTracking();
+            mPausedMoment = Time.now();
+            mStatus = "PAUSED";
             playRecordingFeedback(false);
             return true;
         } catch (exception) {
-            // Keep the session reference available so the user can retry
-            // rather than silently losing the recording.
-            mStatus = "SAVE FAILED";
+            mStatus = "PAUSE FAILED";
             return false;
+        }
+    }
+
+    function resumeRecording() {
+        if (mSession == null) {
+            return startRecording();
+        }
+        if (isRecording()) {
+            mStatus = "ALREADY RECORDING";
+            return false;
+        }
+
+        try {
+            if (!mSession.start()) {
+                mStatus = "RESUME FAILED";
+                return false;
+            }
+            startPositionTracking();
+            if (mPausedMoment != null) {
+                mPausedSeconds += Time.now().subtract(mPausedMoment).value();
+                mPausedMoment = null;
+            }
+            mStatus = "RECORDING";
+            showRecordingFeedback();
+            playRecordingFeedback(true);
+            return true;
+        } catch (exception) {
+            mStatus = "RESUME FAILED";
+            return false;
+        }
+    }
+
+    function finishRecordingAndExit() {
+        if (mSession == null) {
+            System.exit();
+            return;
+        }
+
+        try {
+            stopPositionTracking();
+            if (isRecording() && !mSession.stop()) {
+                mStatus = "STOP FAILED";
+                WatchUi.requestUpdate();
+                return;
+            }
+            if (!mSession.save()) {
+                mStatus = "SAVE FAILED";
+                WatchUi.requestUpdate();
+                return;
+            }
+            mSession = null;
+            mStartMoment = null;
+            mPausedMoment = null;
+            mPausedSeconds = 0;
+            mStatus = "SAVED - SYNC";
+            System.exit();
+        } catch (exception) {
+            mStatus = "SAVE FAILED";
+            WatchUi.requestUpdate();
         }
     }
 
@@ -220,8 +340,87 @@ class FlightTraceApp extends Application.AppBase {
         return mSession != null && mSession.isRecording();
     }
 
+    function hasRecordingSession() {
+        return mSession != null;
+    }
+
+    // 0 = hidden, 1 = paused (permanent red), 2 = just started/resumed (green).
+    function recordingIndicatorState() {
+        if (mSession != null && !isRecording()) {
+            return 1;
+        }
+        if (mRecordingFeedbackUntil != null &&
+            Time.now().value() < mRecordingFeedbackUntil) {
+            return 2;
+        }
+        return 0;
+    }
+
+    function showRecordingFeedback() {
+        mRecordingFeedbackUntil = Time.now().value() + 3;
+    }
+
     function getPositionInfo() {
         return mPositionInfo;
+    }
+
+    function getDisplayedAltitudeFeet(info) {
+        if (info == null || info.altitude == null) {
+            return null;
+        }
+        var altitudeFeet = info.altitude * 3.28084;
+        if (mAltitudeCalibrationFeet != null) {
+            altitudeFeet += mAltitudeCalibrationFeet;
+        }
+        return altitudeFeet;
+    }
+
+    function canCalibrateNearestAirport() {
+        if (mNearestAirport == null ||
+            mNearestAirport[:elevationFeet] == null ||
+            mNearestAirport[:distanceMeters] > 1852.0) {
+            return false;
+        }
+        if (mPositionInfo == null || mPositionInfo.speed == null ||
+            mPositionInfo.speed > 2.57222) {
+            return false;
+        }
+        return getDisplayedAltitudeFeet(mPositionInfo) != null;
+    }
+
+    function requestAltitudeCalibration() {
+        if (!canCalibrateNearestAirport()) {
+            return;
+        }
+        var airport = mNearestAirport;
+        WatchUi.pushView(
+            new WatchUi.Confirmation("CALIBRATE " + airport[:ident] + " " +
+                airport[:elevationFeet].format("%d") + " FT?"),
+            new FlightTraceCalibrationConfirmationDelegate(self),
+            WatchUi.SLIDE_IMMEDIATE
+        );
+    }
+
+    function applyAltitudeCalibration() {
+        if (!canCalibrateNearestAirport()) {
+            return;
+        }
+        var rawAltitudeFeet = getDisplayedAltitudeFeet(mPositionInfo);
+        mAltitudeCalibrationFeet = mNearestAirport[:elevationFeet] - rawAltitudeFeet;
+        mAltitudeCalibrationAirport = mNearestAirport[:ident];
+        WatchUi.requestUpdate();
+    }
+
+    function getAltitudeCalibrationFeet() {
+        return mAltitudeCalibrationFeet;
+    }
+
+    function getSensorInfo() {
+        return mSensorInfo;
+    }
+
+    function getActivityMonitorInfo() {
+        return mActivityMonitorInfo;
     }
 
     function getNearestAirport() {
@@ -237,7 +436,7 @@ class FlightTraceApp extends Application.AppBase {
         var latitude = coordinates[0];
         var longitude = coordinates[1];
         var candidates = [];
-        var altitudeFeet = altitudeMeters == null ? null : altitudeMeters * 3.28084;
+        var altitudeFeet = getDisplayedAltitudeFeet(mPositionInfo);
         var altitudeRequired = false;
 
         for (var i = 0; i < mAirspaces.size(); i++) {
@@ -384,13 +583,18 @@ class FlightTraceApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
+    function showHealthPage() {
+        mPage = 3;
+        WatchUi.requestUpdate();
+    }
+
     function showNextPage() {
-        mPage = (mPage + 1) % 3;
+        mPage = (mPage + 1) % 4;
         WatchUi.requestUpdate();
     }
 
     function showPreviousPage() {
-        mPage = (mPage + 2) % 3;
+        mPage = (mPage + 3) % 4;
         WatchUi.requestUpdate();
     }
 
@@ -415,7 +619,9 @@ class FlightTraceApp extends Application.AppBase {
             return 0;
         }
 
-        return Time.now().subtract(mStartMoment).value();
+        var endMoment = mPausedMoment == null ? Time.now() : mPausedMoment;
+        var elapsed = endMoment.subtract(mStartMoment).value() - mPausedSeconds;
+        return elapsed < 0 ? 0 : elapsed;
     }
 
     function getStatus() {
