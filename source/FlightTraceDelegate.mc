@@ -20,6 +20,11 @@ class FlightTraceDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
+        if (mApp.isWaitingForNearestCalibration()) {
+            mApp.reopenAltitudeSourceSelection();
+            return true;
+        }
+
         if (!mApp.hasRecordingSession()) {
             System.exit();
             return true;

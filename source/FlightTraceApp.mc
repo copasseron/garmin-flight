@@ -430,6 +430,11 @@ class FlightTraceApp extends Application.AppBase {
         }
         mAltitudeSourcePromptShown = true;
 
+        showAltitudeSourceMenu();
+    }
+
+    function showAltitudeSourceMenu() {
+
         var menu = new WatchUi.Menu();
         menu.setTitle("ALTITUDE SOURCE");
         menu.addItem("GARMIN ALTITUDE", :garmin);
@@ -440,6 +445,16 @@ class FlightTraceApp extends Application.AppBase {
             new FlightTraceAltitudeSourceMenuDelegate(self),
             WatchUi.SLIDE_IMMEDIATE
         );
+    }
+
+    function isWaitingForNearestCalibration() {
+        return mPendingNearestCalibration;
+    }
+
+    function reopenAltitudeSourceSelection() {
+        mPendingNearestCalibration = false;
+        mStatus = "READY";
+        showAltitudeSourceMenu();
     }
 
     function selectAltitudeSource(item) {
@@ -495,8 +510,13 @@ class FlightTraceApp extends Application.AppBase {
             mNearestAirport[:distanceMeters] > 1852.0) {
             return false;
         }
-        if (mPositionInfo == null || mPositionInfo.speed == null ||
-            mPositionInfo.speed > 2.57222) {
+        if (mPositionInfo == null || mPositionInfo.position == null) {
+            return false;
+        }
+        // A stationary watch can legitimately report no speed value.  A
+        // non-null speed above 5 kt is still rejected as unsafe for a ground
+        // elevation calibration.
+        if (mPositionInfo.speed != null && mPositionInfo.speed > 2.57222) {
             return false;
         }
         return getDisplayedAltitudeFeet(mPositionInfo) != null;
