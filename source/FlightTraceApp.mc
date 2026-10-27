@@ -19,6 +19,7 @@ class FlightTraceApp extends Application.AppBase {
     var mAltitudeCalibrationAirport = null;
     var mPendingManualAltitudeFeet = null;
     var mPendingNearestCalibration = false;
+    var mPendingConfirmedCalibration = false;
     var mAltitudeSourcePromptShown = false;
     var mLastAltitude = null;
     var mLastAltitudeMoment = null;
@@ -131,16 +132,17 @@ class FlightTraceApp extends Application.AppBase {
     }
 
     function onPosition(info as Position.Info) as Void {
-        if (info.altitude != null && info.when != null &&
+        var currentAltitudeMeters = rawAltitudeMeters(info);
+        if (currentAltitudeMeters != null && info.when != null &&
             mLastAltitude != null && mLastAltitudeMoment != null) {
             var seconds = info.when.subtract(mLastAltitudeMoment).value();
             if (seconds > 0 && seconds <= 30) {
-                mVerticalSpeedMps = (info.altitude - mLastAltitude) / seconds;
+                mVerticalSpeedMps = (currentAltitudeMeters - mLastAltitude) / seconds;
             }
         }
 
-        if (info.altitude != null) {
-            mLastAltitude = info.altitude;
+        if (currentAltitudeMeters != null) {
+            mLastAltitude = currentAltitudeMeters;
         }
         if (info.when != null) {
             mLastAltitudeMoment = info.when;
@@ -150,6 +152,10 @@ class FlightTraceApp extends Application.AppBase {
         if (info.position != null) {
             updateNearestAirport(info.position);
             applyPendingManualAltitude();
+            if (mPendingConfirmedCalibration && canCalibrateNearestAirport()) {
+                mPendingConfirmedCalibration = false;
+                confirmAltitudeCalibration();
+            }
             if (mPendingNearestCalibration && canCalibrateNearestAirport()) {
                 mPendingNearestCalibration = false;
                 requestAltitudeCalibration();
@@ -453,6 +459,7 @@ class FlightTraceApp extends Application.AppBase {
 
     function reopenAltitudeSourceSelection() {
         mPendingNearestCalibration = false;
+        mPendingConfirmedCalibration = false;
         mStatus = "READY";
         showAltitudeSourceMenu();
     }
@@ -463,6 +470,7 @@ class FlightTraceApp extends Application.AppBase {
             mAltitudeCalibrationAirport = null;
             mPendingManualAltitudeFeet = null;
             mPendingNearestCalibration = false;
+            mPendingConfirmedCalibration = false;
             mStatus = "GARMIN ALTITUDE";
             WatchUi.requestUpdate();
         } else if (item == :airport) {
@@ -494,14 +502,33 @@ class FlightTraceApp extends Application.AppBase {
     }
 
     function getDisplayedAltitudeFeet(info) {
-        if (info == null || info.altitude == null) {
+        var altitudeMeters = rawAltitudeMeters(info);
+        if (altitudeMeters == null) {
             return null;
         }
-        var altitudeFeet = info.altitude * 3.28084;
+        var altitudeFeet = altitudeMeters * 3.28084;
         if (mAltitudeCalibrationFeet != null) {
             altitudeFeet += mAltitudeCalibrationFeet;
         }
         return altitudeFeet;
+    }
+
+    function rawAltitudeMeters(info) {
+        // Sensor.Info exposes the device elevation source and prioritizes the
+        // barometer over GPS. This is the aviation reference for QNH and
+        // vertical speed; GPS altitude is only a fallback.
+        try {
+            if (mSensorInfo != null && mSensorInfo.altitude != null) {
+                return mSensorInfo.altitude;
+            }
+        } catch (exception) {
+            // Some device profiles do not expose sensor altitude.
+        }
+
+        if (info != null && info.altitude != null) {
+            return info.altitude;
+        }
+        return null;
     }
 
     function canCalibrateNearestAirport() {
@@ -551,8 +578,11 @@ class FlightTraceApp extends Application.AppBase {
 
     function confirmAltitudeCalibration() {
         if (!canCalibrateNearestAirport()) {
-            // Keep the dedicated waiting screen visible until the missing
-            // altitude arrives.  Position updates will retry automatically.
+            // The user already confirmed the target. Return to the main page
+            // now and finish the QNH offset automatically when altitude data
+            // becomes available.
+            mPendingNearestCalibration = false;
+            mPendingConfirmedCalibration = true;
             mStatus = "WAITING FOR ALTITUDE";
             WatchUi.requestUpdate();
             return;
@@ -561,11 +591,13 @@ class FlightTraceApp extends Application.AppBase {
         mAltitudeCalibrationFeet = mNearestAirport[:elevationFeet] - rawAltitudeFeet;
         mAltitudeCalibrationAirport = mNearestAirport[:ident];
         mPendingNearestCalibration = false;
+        mPendingConfirmedCalibration = false;
         mStatus = "CALIBRATED " + mAltitudeCalibrationAirport;
         WatchUi.requestUpdate();
     }
 
     function cancelAltitudeCalibrationProposal() {
+        mPendingConfirmedCalibration = false;
         if (mPendingNearestCalibration) {
             mPendingNearestCalibration = false;
             mStatus = "GARMIN ALTITUDE";
